@@ -29,7 +29,7 @@
 
         <div class="bg-white/10 backdrop-blur-sm rounded-2xl px-4 py-3 border border-white/20 mb-4">
             <p class="text-xs text-white/90 leading-relaxed">
-                📱 Pilih menu favorit → pesanan langsung dikirim ke dapur
+                📱 Pilih menu yang kamu inginkan → pesanan langsung masuk ke dapur
             </p>
         </div>
 
@@ -198,7 +198,7 @@
                 <span id="pm-qty" class="w-10 text-center font-bold">1</span>
                 <button onclick="changeQty(1)" class="w-11 h-11 text-xl font-bold text-gray-600 active:scale-90 transition">+</button>
             </div>
-            <button onclick="addToCart()" class="flex-1 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3.5 rounded-xl shadow-md active:scale-[0.98] transition text-sm">
+            <button type="button" onclick="addToCart()" class="flex-1 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3.5 rounded-xl shadow-md active:scale-[0.98] transition text-sm">
                 Tambah • <span id="pm-total">Rp 0</span>
             </button>
         </div>
@@ -346,8 +346,7 @@ const PRODUCTS = {!! json_encode($products->map(function ($p) {
                 'id'      => $v->id,
                 'name'    => $v->name,
                 'type'    => $v->type ?? 'single',
-                // PAKSA JADI TRUE UNTUK TESTING
-                'is_required' => (bool) $v->is_required,
+                'is_required' => $v->is_required,
                 'options' => $v->options->map(function ($o) {
                     return [
                         'id'    => $o->id,
@@ -429,6 +428,7 @@ function openProduct(id) {
     if (p.variants && p.variants.length > 0) {
         p.variants.forEach((v, vi) => {
             const isMultiple = v.type === 'multiple';
+            console.log('Varian:', v.name, '| Wajib:', v.is_required);
             const typeBadge = isMultiple 
                 ? `<span class="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded ml-2">Bisa pilih banyak</span>` 
                 : `<span class="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded ml-2">Pilih 1</span>`;
@@ -500,12 +500,17 @@ function updateProductTotal() {
 function addToCart() {
     if (!selectedProduct) return;
 
-    // VALIDASI VARIAN WAJIB (KARENA KITA PAKSA TRUE DI ATAS, MAKA INI AKAN SELALU JALAN)
+    // ==========================================
+    // VALIDASI VARIAN WAJIB (MENGIKUTI DATABASE)
+    // ==========================================
     if (selectedProduct.variants) {
         for (let i = 0; i < selectedProduct.variants.length; i++) {
             const variant = selectedProduct.variants[i];
             
-            if (variant.is_required) {
+            // Cek apakah varian ini WAJIB (is_required = true/1)
+            const isRequired = variant.is_required === true || variant.is_required == 1;
+
+            if (isRequired) {
                 const isPicked = selectedVariants[i];
                 let hasPicked = false;
 
@@ -517,14 +522,18 @@ function addToCart() {
                     }
                 }
 
+                // Jika wajib tapi belum ada yang dipilih, HENTIKAN!
                 if (!hasPicked) {
                     showToast(`Wajib pilih ${variant.name} terlebih dahulu!`, 'error');
-                    return;
+                    return; 
                 }
             }
         }
     }
 
+    // ==========================================
+    // JIKA LOLOS VALIDASI, SIMPAN KE KERANJANG
+    // ==========================================
     let variantArray = [];
     Object.values(selectedVariants).forEach(v => {
         if (v.options) {

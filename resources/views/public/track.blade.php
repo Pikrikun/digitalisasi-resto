@@ -322,7 +322,7 @@
             if (res.ok) {
                 showPublicToast('Bukti transfer berhasil dikirim!', 'success');
                 // Reload halaman setelah 1 detik agar notifikasi terlihat
-                setTimeout(() => window.location.reload(), 1000); 
+                setTimeout(() => window.location.reload(), 1500); 
             } else {
                 showPublicToast('Gagal mengirim bukti. Coba lagi.', 'error');
                 btn.disabled = false;

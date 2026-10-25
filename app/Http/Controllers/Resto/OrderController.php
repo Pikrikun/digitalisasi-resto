@@ -30,7 +30,7 @@ class OrderController extends Controller
             }
         }
 
-        $orders = $query->get();
+        $orders = $query->paginate(51); // <-- Tampilkan 10 per halaman
 
         return view('resto.orders.index', compact('restaurant', 'orders'));
     }
@@ -81,13 +81,23 @@ class OrderController extends Controller
     public function checkNewOrders()
     {
         $restaurant = Auth::user()->restaurant;
-        // Cari pesanan pending yang dibuat dalam 5 menit terakhir (agar tidak spam notif lama)
-        $newOrders = Order::where('restaurant_id', $restaurant->id)
+        
+        // Cari pesanan terbaru (baik pending maupun yang baru upload bukti)
+        $newOrder = Order::where('restaurant_id', $restaurant->id)
             ->where('status', 'pending')
-            ->where('created_at', '>=', now()->subMinutes(5))
-            ->count();
+            ->latest('updated_at')
+            ->orderBy('updated_at', 'desc')
+            ->first();
 
-        return response()->json(['count' => $newOrders,]);
+        return response()->json([
+            'count' => $newOrder ? 1 : 0,
+            'latest_id' => $newOrder ? $newOrder->id : null,
+            'customer_name' => $newOrder ? $newOrder->customer_name : null,
+            'payment_method' => $newOrder ? $newOrder->payment_method : null,
+            'status' => $newOrder ? $newOrder->status : null,
+            'updated_at' => $newOrder ? $newOrder->updated_at->timestamp : null,
+            'order_number' => $newOrder ? $newOrder->order_number : null, 
+        ]);
     }
 
     public function verifyPayment(Request $request, Order $order)
@@ -174,7 +184,7 @@ class OrderController extends Controller
             }
         }
 
-        $orders = $query->get();
+        $orders = $query->paginate(51);
 
         // Kembalikan HANYA view partial (isi card-nya saja)
         return view('resto.orders._cards', compact('orders'));

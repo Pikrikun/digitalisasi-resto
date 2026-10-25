@@ -10,12 +10,21 @@
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
         <h2 class="text-2xl font-extrabold">Dashboard</h2>
-        <p class="text-sm text-gray-500">Ringkasan performa restoran Anda hari ini</p>
+        <p class="text-sm text-gray-500">Ringkasan performa restoran Anda</p>
     </div>
     
-    <a href="{{ route('resto.dashboard.report') }}" class="bg-teal-500 hover:bg-teal-600 text-white font-bold px-4 py-2.5 rounded-xl shadow-md shadow-teal-200 transition flex items-center gap-2 text-sm self-start md:self-auto">
-        ⬇️ Download Laporan
-    </a>
+    <div class="flex items-center gap-3">
+        {{-- FILTER TANGGAL --}}
+        <form method="GET" action="{{ route('resto.dashboard') }}" class="flex items-center gap-2">
+            <input type="date" name="date" value="{{ $selectedDate }}" 
+                   onchange="this.form.submit()"
+                   class="px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-teal-400 outline-none shadow-sm">
+        </form>
+
+        <a href="{{ route('resto.dashboard.report') }}" class="bg-teal-500 hover:bg-teal-600 text-white font-bold px-4 py-2.5 rounded-xl shadow-md shadow-teal-200 transition flex items-center gap-2 text-sm">
+            ⬇️ Download Laporan
+        </a>
+    </div>
 </div>
 
 {{-- KARTU STATISTIK --}}
@@ -23,22 +32,21 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <div class="flex items-center justify-between mb-2">
             <div class="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center text-xl">📦</div>
-            <span class="text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-1 rounded-md">Hari Ini</span>
+            <span class="text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-1 rounded-md">{{ $selectedDate == now()->toDateString() ? 'Hari Ini' : \Carbon\Carbon::parse($selectedDate)->format('d M') }}</span>
         </div>
         <p class="text-xs text-gray-500 font-semibold mb-1">Total Pesanan</p>
-        <p class="text-2xl font-extrabold text-gray-800">{{ $totalOrdersToday }} <span class="text-sm font-medium text-gray-400">Pesanan</span></p>
+        <p class="text-2xl font-extrabold text-gray-800">{{ $totalOrders }} <span class="text-sm font-medium text-gray-400">Pesanan</span></p>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <div class="flex items-center justify-between mb-2">
             <div class="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-xl">💰</div>
-            <span class="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md">Hari Ini</span>
+            <span class="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md">{{ $selectedDate == now()->toDateString() ? 'Hari Ini' : \Carbon\Carbon::parse($selectedDate)->format('d M') }}</span>
         </div>
-        <p class="text-xs text-gray-500 font-semibold mb-1">Total Omzet</p>
-        <p class="text-2xl font-extrabold text-gray-800">Rp {{ number_format($revenueToday, 0, ',', '.') }}</p>
+        <p class="text-xs text-gray-500 font-semibold mb-1">Total Omzet (Selesai)</p>
+        <p class="text-2xl font-extrabold text-gray-800">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</p>
     </div>
 
-    {{-- KARTU BARU: TOTAL MENU --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <div class="flex items-center justify-between mb-2">
             <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-xl">🍽️</div>
@@ -127,9 +135,8 @@
     // Fungsi untuk merender grafik
     function renderChart() {
         const canvas = document.getElementById('salesChart');
-        if (!canvas) return; // Jika canvas tidak ada, hentikan
+        if (!canvas) return;
 
-        // Hapus instance Chart sebelumnya jika ada (biar tidak tumpang tindih)
         if (window.mySalesChart) {
             window.mySalesChart.destroy();
         }
@@ -166,10 +173,7 @@
         });
     }
 
-    // 1. Jalankan saat halaman pertama kali dimuat
     document.addEventListener('DOMContentLoaded', renderChart);
-    
-    // 2. Jalankan saat pindah menu via Livewire
     document.addEventListener('livewire:navigated', renderChart);
 </script>
 @endpush

@@ -27,7 +27,7 @@ class PublicOrderController extends Controller
         $products = Product::where('restaurant_id', $restaurant->id)
             ->where('is_available', true)
              ->with(['category', 'variants' => function($query) {
-                $query->select('id', 'product_id', 'name', 'type'); // <-- Tambahkan 'type'
+                 $query->select('id', 'product_id', 'name', 'type', 'is_required'); 
             }, 'variants.options'])
             ->get();
 
@@ -73,16 +73,27 @@ class PublicOrderController extends Controller
             $order->save();
         }
 
-        $total = 0;
+                $total = 0;
         foreach ($data['cart'] as $item) {
             $product = Product::find($item['product_id']);
             if ($product) {
-                $total += $product->price * $item['qty'];
+                $price = $product->price;
+                $qty = $item['qty'];
+
+                // Tambahkan harga varian
+                if (!empty($item['variants'])) {
+                    foreach ($item['variants'] as $variant) {
+                        $price += $variant['price']; // Pastikan 'price' ada di array variant
+                    }
+                }
+
+                $total += $price * $qty;
+
                 $order->items()->create([
                     'product_id'   => $product->id,
                     'product_name' => $product->name,
-                    'price'        => $product->price,
-                    'qty'          => $item['qty'],
+                    'price'        => $price, // Simpan harga yang sudah termasuk varian
+                    'qty'          => $qty,
                     'variants'     => $item['variants'] ?? null,
                     'note'         => $item['note'] ?? null,
                 ]);
@@ -113,6 +124,7 @@ class PublicOrderController extends Controller
         $order->payment_proof = $this->saveBase64Image($request->payment_proof, 'proofs');
         $order->status = 'pending';
         $order->cancel_reason = null;
+        $order->updated_at = now();
         $order->save();
 
         return back()->with('success', 'Bukti pembayaran berhasil diunggah ulang. Mohon tunggu konfirmasi kasir.');

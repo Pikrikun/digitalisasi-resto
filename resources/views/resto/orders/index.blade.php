@@ -38,18 +38,25 @@
     @endphp
 
     @foreach ($tabs as $tab)
-        <a href="{{ route('resto.orders.index', ['status' => $tab['key']]) }}"
-           wire:navigate
-           class="px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition
-                  {{ $currentStatus === $tab['key'] ? 'bg-teal-500 text-white shadow-md shadow-teal-200' : 'bg-gray-50 text-gray-600 hover:bg-gray-100' }}">
+        <button onclick="changeTab('{{ $tab['key'] }}', this)"
+                data-key="{{ $tab['key'] }}"
+                class="filter-tab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition
+                {{ $currentStatus === $tab['key'] 
+                    ? 'bg-teal-500 text-white shadow-md shadow-teal-200' 
+                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100' }}">
             {{ $tab['label'] }}
-        </a>
+        </button>
     @endforeach
 </div>
 
 {{-- CONTAINER UNTUK LIST PESANAN --}}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="order-grid">
     @include('resto.orders._cards', ['orders' => $orders])
+</div>
+
+{{-- TOMBOL PAGINATION --}}
+<div class="mt-6 flex justify-center">
+    {{ $orders->links() }}
 </div>
 
 {{-- MODAL GLOBAL DETAIL PESANAN --}}
@@ -78,7 +85,6 @@
 @endsection
 
 @push('scripts')
-<audio id="notif-audio" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 <script>
     const currentStatus = "{{ request('status', 'semua') }}";
     let currentOrderCount = {{ $orders->count() }};
@@ -307,54 +313,59 @@ window.filterOrders = function() {
         document.getElementById('reject-modal').classList.remove('flex');
         window.verifyPayment(orderId, 'reject', reason);
     };
+    
+        // 5. FITUR REAL-TIME (TANPA RELOAD)
+    function refreshOrderCards() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const status = urlParams.get('status') || 'semua';
+        const page = urlParams.get('page') || 1;
 
-    // 5. FITUR NOTIFIKASI REAL-TIME
-        // Simpan ID pesanan dan waktu update terakhirnya
-    let knownOrderUpdates = {};
-    document.querySelectorAll('.order-card').forEach(card => {
-        const data = JSON.parse(card.getAttribute('data-order'));
-        knownOrderUpdates[data.id] = data.updated_at;
-    });
-
-    function checkNewOrders() {
-        fetch(`{{ route('resto.orders.partial') }}?status=${currentStatus}`)
-            .then(res => res.text())
-            .then(html => {
-                // Ganti isi grid dengan card terbaru
-                document.getElementById('order-grid').innerHTML = html;
-                
-                // Cek apakah ada pesanan baru atau update
-                const cards = document.querySelectorAll('.order-card');
-                let hasNewUpdate = false;
-                let hasNewOrder = false;
-
-                cards.forEach(card => {
-                    const data = JSON.parse(card.getAttribute('data-order'));
-                    
-                    if (!knownOrderUpdates[data.id]) {
-                        // ID belum ada di memori = Pesanan Baru
-                        hasNewOrder = true;
-                        knownOrderUpdates[data.id] = data.updated_at;
-                    } else if (knownOrderUpdates[data.id] !== data.updated_at) {
-                        // ID sudah ada, tapi waktu update beda = Ada Perubahan (misal upload ulang)
-                        hasNewUpdate = true;
-                        knownOrderUpdates[data.id] = data.updated_at;
-                    }
-                });
-
-                if (hasNewOrder || hasNewUpdate) {
-                    // Mainkan suara & tampilkan banner
-                    document.getElementById('notif-audio').play().catch(e => console.log('Audio diblokir'));
-                    const banner = document.getElementById('new-order-banner');
-                    if (banner) {
-                        banner.classList.remove('hidden'); banner.classList.add('flex');
-                        setTimeout(() => { banner.classList.add('hidden'); banner.classList.remove('flex'); }, 5000);
-                    }
+        fetch(`{{ route('resto.orders.partial') }}?status=${status}&page=${page}`, {
+            headers: { 'Accept': 'text/html' }
+        })
+        .then(res => res.text())
+        .then(html => {
+            const grid = document.getElementById('order-grid');
+            if (grid) {
+                grid.innerHTML = html;
+                // Panggil ulang filter pencarian jika ada
+                if (typeof window.filterOrders === 'function') {
+                    window.filterOrders();
                 }
-            })
-            .catch(err => console.error('Error:', err));
+            }
+        })
+        .catch(err => console.log('Gagal refresh card:', err));
     }
 
-    setInterval(checkNewOrders, 5000);
+    // Jalankan setiap 5 detik
+    setInterval(refreshOrderCards, 5000);
+
+    function changeTab(status, btn) {
+        // 1. Ubah warna semua tombol jadi abu-abu
+        document.querySelectorAll('.filter-tab').forEach(el => {
+            el.classList.remove('bg-teal-500', 'text-white', 'shadow-md', 'shadow-teal-200');
+            el.classList.add('bg-gray-50', 'text-gray-600');
+        });
+
+        // 2. Ubah tombol yang diklik jadi hijau
+        btn.classList.remove('bg-gray-50', 'text-gray-600');
+        btn.classList.add('bg-teal-500', 'text-white', 'shadow-md', 'shadow-teal-200');
+
+        // 3. Ubah URL di address bar tanpa reload
+        const url = new URL(window.location);
+        url.searchParams.set('status', status);
+        url.searchParams.set('page', 1); // <-- PASTIKAN PAGE = 1
+        window.history.pushState({}, '', url);
+
+        // 4. Ambil data terbaru
+         fetch(`{{ route('resto.orders.partial') }}?status=${status}&page=1`, { // <-- KIRIM PAGE=1
+            headers: { 'Accept': 'text/html' }
+        })
+        .then(res => res.text())
+        .then(html => {
+            document.getElementById('order-grid').innerHTML = html;
+        })
+        .catch(err => console.log('Gagal ganti tab:', err));
+    }
 </script>
 @endpush

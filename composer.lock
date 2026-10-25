@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d8cc44b8691f19e3ef4252782c4a8b63",
+    "content-hash": "e963876644acc607a5937b149f2bf027",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -2374,16 +2374,16 @@
         },
         {
             "name": "livewire/livewire",
-            "version": "v4.4.7",
+            "version": "v4.4.8",
             "source": {
                 "type": "git",
                 "url": "https://github.com/livewire/livewire.git",
-                "reference": "5976d18b1c808287017a17337d9e68dc1ca64ca2"
+                "reference": "8d7f8fc6138274a2f3384c9db354ca012215a259"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/livewire/livewire/zipball/5976d18b1c808287017a17337d9e68dc1ca64ca2",
-                "reference": "5976d18b1c808287017a17337d9e68dc1ca64ca2",
+                "url": "https://api.github.com/repos/livewire/livewire/zipball/8d7f8fc6138274a2f3384c9db354ca012215a259",
+                "reference": "8d7f8fc6138274a2f3384c9db354ca012215a259",
                 "shasum": ""
             },
             "require": {
@@ -2438,7 +2438,7 @@
             "description": "A front-end framework for Laravel.",
             "support": {
                 "issues": "https://github.com/livewire/livewire/issues",
-                "source": "https://github.com/livewire/livewire/tree/v4.4.7"
+                "source": "https://github.com/livewire/livewire/tree/v4.4.8"
             },
             "funding": [
                 {
@@ -2446,7 +2446,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-09-28T18:12:51+00:00"
+            "time": "2026-10-21T12:53:46+00:00"
         },
         {
             "name": "masterminds/html5",
@@ -6777,6 +6777,65 @@
         }
     ],
     "packages-dev": [
+        {
+            "name": "andreapollastri/checkpoint",
+            "version": "1.2.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/andreapollastri/checkpoint.git",
+                "reference": "282998e9d9353ca16dc1e6d8ebd5f30619600765"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/andreapollastri/checkpoint/zipball/282998e9d9353ca16dc1e6d8ebd5f30619600765",
+                "reference": "282998e9d9353ca16dc1e6d8ebd5f30619600765",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/console": "^8.0 || ^9.0 || ^10.0 || ^11.0 || ^12.0 || ^13.0",
+                "illuminate/support": "^8.0 || ^9.0 || ^10.0 || ^11.0 || ^12.0 || ^13.0",
+                "php": "^8.1",
+                "symfony/finder": "^5.4 || ^6.0 || ^7.0 || ^8.0",
+                "symfony/process": "^5.4 || ^6.0 || ^7.0 || ^8.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^6.0 || ^7.0 || ^8.0 || ^9.0 || ^10.0 || ^11.0",
+                "phpunit/phpunit": "^9.5.10 || ^10.0 || ^11.0 || ^12.0 || ^13.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Checkpoint\\CheckpointServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Checkpoint\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Andrea Pollastri",
+                    "homepage": "https://andreapollastri.net",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Laravel security scanner — checks CVEs, hardcoded secrets, SQL injection, XSS and more via a single Artisan command.",
+            "homepage": "https://github.com/andreapollastri/checkpoint",
+            "support": {
+                "docs": "https://github.com/andreapollastri/checkpoint#readme",
+                "issues": "https://github.com/andreapollastri/checkpoint/issues",
+                "security": "https://github.com/andreapollastri/checkpoint/security/advisories",
+                "source": "https://github.com/andreapollastri/checkpoint"
+            },
+            "time": "2026-10-07T09:51:41+00:00"
+        },
         {
             "name": "fakerphp/faker",
             "version": "v1.24.1",

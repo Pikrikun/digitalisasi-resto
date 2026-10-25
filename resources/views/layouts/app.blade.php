@@ -22,20 +22,9 @@
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen">
 
-    {{-- CONTAINER TOAST --}}
+
+    {{-- CONTAINER TOAST (GLOBAL) --}}
     <div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
-
-    {{-- NOTIFIKASI BANNER (GLOBAL) --}}
-    <div id="new-order-banner" class="fixed top-4 right-4 bg-teal-600 text-white p-4 rounded-xl shadow-2xl z-[9999] hidden items-center gap-4 animate-bounce">
-        <div class="text-3xl">🔔</div>
-        <div>
-            <p class="font-bold text-lg">Pesanan Baru Masuk!</p>
-            <p class="text-xs text-teal-100">Ada pelanggan yang memesan. Segera cek dashboard.</p>
-        </div>
-        <a href="{{ route('resto.orders.index') }}" wire:navigate class="bg-white text-teal-600 px-4 py-2 rounded-lg font-bold text-sm shadow">Lihat</a>
-    </div>
-
-    {{-- AUDIO NOTIFIKASI --}}
     <audio id="notif-audio" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
     {{-- MODAL ALASAN TOLAK (GLOBAL) --}}
@@ -187,42 +176,85 @@
 
     {{-- SCRIPT GLOBAL --}}
     <script>
-        // 1. Notifikasi Pesanan Baru
-        let lastNotifiedId = sessionStorage.getItem('last_notified_order_id');
+        let lastOrderId = localStorage.getItem('last_order_id') || null;
+        let lastUpdateAt = localStorage.getItem('last_update_at') || null;
 
-        function checkNewOrdersGlobal(isFirstLoad = false) {
-            fetch("{{ route('resto.orders.check') }}", { headers: { 'Accept': 'application/json' } })
-                .then(res => res.json())
-                .then(data => {
-                    const banner = document.getElementById('new-order-banner');
+        function checkNewOrdersGlobal() {
+            fetch("{{ route('resto.orders.check') }}", { 
+                headers: { 'Accept': 'application/json' } 
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.count > 0 && data.latest_id) {
                     
-                    if (data.count > 0 && data.latest_id) {
-                        if (banner && banner.classList.contains('hidden')) {
-                            banner.classList.remove('hidden');
-                            banner.classList.add('flex');
-                        }
+                    // Cek apakah ini pesanan baru ATAU update bukti
+                    const isNewOrder = data.latest_id != lastOrderId;
+                    const isUpdated = data.updated_at != lastUpdateAt;
 
-                        if (data.latest_id !== lastNotifiedId) {
-                            if (!isFirstLoad) {
-                                const audio = document.getElementById('notif-audio');
-                                if (audio) audio.play().catch(e => console.log('Audio diblokir'));
-                            }
-                            lastNotifiedId = data.latest_id;
-                            sessionStorage.setItem('last_notified_order_id', lastNotifiedId);
-                        }
-                    } else {
-                        if (banner) {
-                            banner.classList.add('hidden');
-                            banner.classList.remove('flex');
-                        }
+                    if (isNewOrder || isUpdated) {
+                        // Simpan ID dan waktu update terbaru
+                        localStorage.setItem('last_order_id', data.latest_id);
+                        localStorage.setItem('last_update_at', data.updated_at);
+                        lastOrderId = data.latest_id;
+                        lastUpdateAt = data.updated_at;
+
+                        // Tampilkan Notifikasi
+                        let message = isNewOrder ? 'Pesanan Baru!' : 'Bukti Transfer Diperbarui!';
+                        showOrderToast(data.order_number, data.payment_method, message);
                     }
-                })
-                .catch(err => console.log('Cek notifikasi gagal:', err));
+                }
+            })
+            .catch(err => console.log('Gagal cek notifikasi:', err));
         }
 
-        document.addEventListener('DOMContentLoaded', () => checkNewOrdersGlobal(true));
-        document.addEventListener('livewire:navigated', () => checkNewOrdersGlobal(true));
-        setInterval(() => checkNewOrdersGlobal(false), 10000);
+        function showOrderToast(orderNumber, method, title = 'Pesanan Baru!') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `bg-white border-l-4 border-teal-500 shadow-2xl rounded-r-xl p-4 flex items-start gap-3 pointer-events-auto transform transition-all duration-300 -translate-y-10 opacity-0 min-w-[300px]`;
+            
+            toast.innerHTML = `
+                <div class="text-2xl">🔔</div>
+                <div class="flex-1">
+                    <p class="font-bold text-sm text-gray-800">${title}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">#ORD-${String(orderNumber).padStart(4, '0')} - ${method.toUpperCase()}</p>
+                </div>
+                <a href="{{ route('resto.orders.index') }}" class="text-xs font-bold text-teal-600 hover:underline">Lihat</a>
+                <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
+            `;
+
+            container.appendChild(toast);
+
+            // MAIN KAN SUARA
+            const audio = document.getElementById('notif-audio');
+            if (audio) {
+                audio.currentTime = 0;
+                audio.play().catch(e => console.log('Audio diblokir browser'));
+            }
+
+            setTimeout(() => toast.classList.remove('-translate-y-10', 'opacity-0'), 10);
+
+            setTimeout(() => {
+                toast.classList.add('-translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        // Saat pertama load, simpan state awal tanpa bunyi
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch("{{ route('resto.orders.check') }}")
+                .then(res => res.json())
+                .then(data => {
+                    if (data.latest_id) {
+                        localStorage.setItem('last_order_id', data.latest_id);
+                        localStorage.setItem('last_update_at', data.updated_at);
+                    }
+                });
+        });
+
+        setInterval(checkNewOrdersGlobal, 10000);
+
 
         // 2. Toggle Sidebar
         function toggleSidebar() {

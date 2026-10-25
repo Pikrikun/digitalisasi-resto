@@ -5,68 +5,53 @@ namespace App\Http\Controllers\Resto;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
+use Illuminate\Http\Request; // <-- TAMBAHKAN INI
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $restaurant = Auth::user()->restaurant;
 
-        // 1. Statistik Hari Ini
-        $totalOrdersToday = Order::where('restaurant_id', $restaurant->id)
-            ->whereDate('created_at', today())
-            ->count();
+        $selectedDate = $request->filled('date') ? $request->date : now()->toDateString();
+        
+        $ordersQuery = Order::where('restaurant_id', $restaurant->id)
+            ->whereDate('created_at', $selectedDate);
 
-        $revenueToday = Order::where('restaurant_id', $restaurant->id)
-            ->whereDate('created_at', today())
-            ->whereIn('status', ['done', 'paid']) // Hanya hitung yang sudah selesai/lunas
-            ->sum('total');
+        $totalOrders = $ordersQuery->count();
+        $totalRevenue = $ordersQuery->where('status', 'done')->sum('total');
+        $totalProducts = Product::where('restaurant_id', $restaurant->id)->where('is_available', true)->count();
 
-        $totalProducts = Product::where('restaurant_id', $restaurant->id)->count();
+        $chartData = Order::where('restaurant_id', $restaurant->id)
+            ->where('status', 'done')
+            ->whereYear('created_at', now()->year)
+            ->selectRaw('MONTH(created_at) as month, SUM(total) as total')
+            ->groupBy('month')
+            ->pluck('total', 'month')
+            ->toArray();
 
-        // 2. Data Pesanan untuk Kanban (Hanya Pending & Done)
         $newOrders = Order::where('restaurant_id', $restaurant->id)
             ->where('status', 'pending')
-            ->with('table')
             ->latest()
             ->get();
 
         $doneOrders = Order::where('restaurant_id', $restaurant->id)
             ->where('status', 'done')
-            ->with('table')
             ->latest()
-            ->take(5) // Ambil 5 terakhir saja agar tidak kepanjangan
+            ->limit(5)
             ->get();
-
-        // 3. Data Grafik Penjualan Bulanan (Tahun Ini)
-        $monthlySales = Order::where('restaurant_id', $restaurant->id)
-            ->whereYear('created_at', date('Y'))
-            ->whereIn('status', ['done', 'paid'])
-            ->select(
-                DB::raw('MONTH(created_at) as month'),
-                DB::raw('SUM(total) as total_sales')
-            )
-            ->groupBy('month')
-            ->orderBy('month')
-            ->pluck('total_sales', 'month')
-            ->toArray();
-
-        // Siapkan array 1-12 untuk Chart.js (jika bulan kosong, isi 0)
-        $chartData = [];
-        for ($i = 1; $i <= 12; $i++) {
-            $chartData[] = $monthlySales[$i] ?? 0;
-        }
 
         return view('resto.dashboard', compact(
             'restaurant', 
-            'totalOrdersToday', 
-            'revenueToday', 
-            'totalProducts',
+            'totalOrders', 
+            'totalRevenue', 
+            'totalProducts', 
+            'chartData',
+            'selectedDate',
             'newOrders',
-            'doneOrders',
-            'chartData'
+            'doneOrders'
         ));
     }
 
@@ -81,7 +66,6 @@ class DashboardController extends Controller
         $filename = 'laporan-penjualan-' . date('Y-m-d') . '.csv';
         $handle = fopen('php://output', 'w');
         
-        // Header CSV
         fputcsv($handle, ['Tanggal', 'ID Pesanan', 'Nama Pelanggan', 'Metode Bayar', 'Total']);
         
         foreach ($orders as $order) {
