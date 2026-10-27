@@ -24,7 +24,7 @@
         }
     </style>
 </head>
-<body onload="window.print()">
+<body>
 
     <div class="text-center">
         <div class="title">{{ $restaurant->name }}</div>
@@ -50,7 +50,21 @@
             
             @if ($item->variants)
                 <div style="font-size: 10px;">
-                    Varian: {{ collect($item->variants)->pluck('option')->join(', ') }}
+                    Varian: 
+                    @foreach ($item->variants as $index => $v)
+                        {{-- Tampilkan nama opsi --}}
+                        {{ $v['option'] ?? $v['name'] ?? '' }}
+                        
+                        {{-- Jika ada tambahan biaya, tampilkan --}}
+                        @if (isset($v['price']) && $v['price'] > 0)
+                            (+Rp {{ number_format($v['price'], 0, ',', '.') }})
+                        @endif
+
+                        {{-- Kasih pemisah koma jika masih ada varian lain --}}
+                        @if (!$loop->last)
+                            , 
+                        @endif
+                    @endforeach
                 </div>
             @endif
 
@@ -107,11 +121,5 @@
         <div>Terima Kasih!</div>
         <div>Silakan Datang Kembali</div>
     </div>
-
-    {{-- Tombol Print (Hanya muncul di layar, tidak dicetak) --}}
-    <div class="no-print" style="margin-top: 20px; text-align: center;">
-        <button onclick="window.print()" style="padding: 10px; background: #14b8a6; color: white; border: none; border-radius: 5px; width: 100%;">Cetak Ulang</button>
-    </div>
-
 </body>
 </html>

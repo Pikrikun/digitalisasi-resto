@@ -97,7 +97,7 @@
                 </div>
 
                 <div class="border-t border-gray-100 pt-4">
-                    <p class="text-[10px] text-gray-400 font-medium">© {{ date('Y') }} {{ $restaurant->name }}. Powered by Digitalisasi Resto.</p>
+                    <p class="text-[10px] text-gray-400 font-medium">© {{ date('Y') }} {{ $restaurant->name }}. Powered by Kopling Grup Corporation.</p>
                 </div>
             </div>
         </footer>

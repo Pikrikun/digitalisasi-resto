@@ -13,6 +13,21 @@ use App\Http\Controllers\PublicOrderController;
 use App\Console\Commands\CancelExpiredOrders;
 use Illuminate\Support\Facades\Schedule;
 
+
+// API untuk cek ketersediaan menu secara real-time
+Route::get('/api/check-menu-status/{slug}', function ($slug) {
+    $restaurant = \App\Models\Restaurant::where('slug', $slug)->firstOrFail();
+    
+    // Ambil semua ID produk yang saat ini tersedia
+    $availableIds = \App\Models\Product::where('restaurant_id', $restaurant->id)
+        ->where('is_available', true)
+        ->pluck('id')
+        ->toArray();
+        
+    return response()->json(['available_ids' => $availableIds]);
+});
+
+
 /*
 |--------------------------------------------------------------------------
 | PUBLIC ROUTES
@@ -67,6 +82,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->midd
 */
 
 Route::middleware('auth')->prefix('resto')->name('resto.')->group(function () {
+    Route::get('/dashboard/live-stats', [DashboardController::class, 'getLiveStats'])->name('dashboard.live');
     
     // 1. Dashboard Utama
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');

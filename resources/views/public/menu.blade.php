@@ -90,6 +90,7 @@
                         @foreach ($catProducts as $p)
                             <div class="product-card bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md border border-gray-100 active:scale-[0.97] transition-all duration-200"
                                 data-category="{{ $p->category_id }}"
+                                data-product-id="{{ $p->id }}"
                                 data-name="{{ strtolower($p->name) }}"
                                 onclick="openProduct({{ $p->id }})">
                                 <div class="aspect-square bg-gradient-to-br from-teal-50 to-green-50 relative overflow-hidden">
@@ -131,7 +132,7 @@
                 <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                     @foreach ($noCat as $p)
                         <div class="product-card bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md border border-gray-100 active:scale-[0.97] transition-all duration-200"
-                             data-category="none" data-name="{{ strtolower($p->name) }}" onclick="openProduct({{ $p->id }})">
+                             data-category="none" data-name="{{ strtolower($p->name) }}" onclick="openProduct({{ $p->id }})" data-product-id="{{ $p->id }}">
                             <div class="aspect-square bg-gradient-to-br from-teal-50 to-green-50 relative overflow-hidden">
                                 @if ($p->image && file_exists(storage_path('app/public/' . $p->image)))
                                     <img src="{{ asset('storage/' . $p->image) }}" class="w-full h-full object-cover">
@@ -793,5 +794,50 @@ function submitOrder() {
 function formatRp(num) {
     return new Intl.NumberFormat('id-ID').format(num);
 }
+
+    // ==========================================
+    // SENSOR REAL-TIME: SEMBUNYIKAN MENU YANG HABIS
+    // ==========================================
+    setInterval(function() {
+        // Jangan jalankan sensor kalau pelanggan sedang buka modal (biar ga kaget)
+        const isModalOpen = !document.getElementById('product-modal').classList.contains('hidden') || 
+                            !document.getElementById('checkout-modal').classList.contains('hidden');
+        if (isModalOpen) return;
+
+        fetch('/api/check-menu-status/{{ $restaurant->slug }}')
+            .then(res => res.json())
+            .then(data => {
+                const availableIds = data.available_ids;
+                
+                document.querySelectorAll('.product-card').forEach(card => {
+                    const productId = parseInt(card.getAttribute('data-product-id'));
+                    
+                    if (!productId) return;
+
+                    // Jika ID produk TIDAK ADA di daftar available_ids (artinya habis)
+                    if (!availableIds.includes(productId)) {
+                        // Sembunyikan dengan animasi halus
+                        if (card.style.display !== 'none') {
+                            card.style.opacity = '0';
+                            card.style.transform = 'scale(0.9)';
+                            
+                            setTimeout(() => {
+                                card.style.display = 'none';
+                            }, 300);
+                        }
+                    } else {
+                        // Jika sebelumnya disembunyikan tapi sekarang tersedia lagi, munculkan
+                        if (card.style.display === 'none') {
+                            card.style.display = '';
+                            setTimeout(() => {
+                                card.style.opacity = '1';
+                                card.style.transform = 'scale(1)';
+                            }, 10);
+                        }
+                    }
+                });
+            })
+            .catch(err => console.log('Sensor menu gagal:', err));
+    }, 5000); // Cek setiap 5 detik
 </script>
 @endpush

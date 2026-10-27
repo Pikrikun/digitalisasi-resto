@@ -20,7 +20,7 @@
     </style>
     @livewireStyles
 </head>
-<body class="bg-gray-50 text-gray-800 min-h-screen">
+<body class="bg-gray-50 text-gray-800 min-h-screen overflow-x-hidden">
 
 
     {{-- CONTAINER TOAST (GLOBAL) --}}
@@ -41,7 +41,7 @@
     </div>
 
     {{-- SIDEBAR & MAIN --}}
-    <div class="flex min-h-screen" wire:navigate>
+    <div class="flex min-h-screen w-full max-w-full overflow-x-hidden" wire:navigate>
         {{-- SIDEBAR --}}
         <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden transition-opacity"></div>
         <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-100 flex-col transform -translate-x-full lg:translate-x-0 lg:flex transition-transform duration-300 ease-in-out flex">
@@ -110,7 +110,7 @@
         </aside>
 
         {{-- MAIN AREA --}}
-        <div class="flex-1 lg:ml-64 flex flex-col min-h-screen">
+        <div class="flex-1 lg:ml-64 flex flex-col min-h-screen w-full max-w-full">
             <header class="bg-white border-b border-gray-100 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-30">
                 <div class="flex items-center gap-3">
                     <button onclick="toggleSidebar()" class="lg:hidden text-2xl">☰</button>
@@ -332,6 +332,22 @@
                 setTimeout(() => toast.remove(), 300);
             }, 4000);
         }
+
+    function printReceiptSilent(orderId) {
+        const iframe = document.getElementById('print-frame');
+        
+        // Arahkan iframe ke halaman struk
+        iframe.src = `/resto/orders/${orderId}/print`;
+        
+        // Tunggu sampai halaman di dalam iframe selesai dimuat
+        iframe.onload = function() {
+            // Perintahkan iframe untuk mencetak
+            iframe.contentWindow.print();
+        };
+    }
     </script>
+
+    <iframe id="print-frame" style="display: none; width: 0; height: 0; border: none;"></iframe>
+
 </body>
 </html>

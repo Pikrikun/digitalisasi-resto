@@ -151,7 +151,9 @@ window.filterOrders = function() {
         // Rakit Tombol Cetak Struk (SELALU ADA, tapi disembunyikan jika pending)
         let printHtml = `
             <div class="print-container ${order.status !== 'pending' ? '' : 'hidden'} mt-4 mb-4">
-                <a href="/resto/orders/${order.id}/print" target="_blank" class="w-full bg-gray-800 text-white font-bold py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2">🖨️ Cetak Struk</a>
+                <button type="button" onclick="printReceiptSilent(${order.id})" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                    🖨️ Cetak Struk
+                </button>
             </div>
         `;
 

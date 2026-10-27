@@ -84,4 +84,40 @@ class DashboardController extends Controller
             'Content-Type' => 'text/csv',
         ]);
     }
+
+        public function getLiveStats(Request $request)
+    {
+        $restaurant = Auth::user()->restaurant;
+        $selectedDate = $request->filled('date') ? $request->date : today()->toDateString();
+
+        $totalOrders = Order::where('restaurant_id', $restaurant->id)
+            ->whereDate('created_at', $selectedDate)
+            ->count();
+
+        $totalRevenue = Order::where('restaurant_id', $restaurant->id)
+            ->whereDate('created_at', $selectedDate)
+            ->whereIn('status', ['done', 'paid'])
+            ->sum('total');
+
+        // Ambil data grafik (tidak terpengaruh tanggal, tetap tahun ini)
+        $monthlySales = Order::where('restaurant_id', $restaurant->id)
+            ->whereYear('created_at', date('Y'))
+            ->whereIn('status', ['done', 'paid'])
+            ->select(DB::raw('MONTH(created_at) as month'), DB::raw('SUM(total) as total_sales'))
+            ->groupBy('month')
+            ->orderBy('month')
+            ->pluck('total_sales', 'month')
+            ->toArray();
+
+        $chartData = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $chartData[] = $monthlySales[$i] ?? 0;
+        }
+
+        return response()->json([
+            'total_orders' => $totalOrders,
+            'total_revenue' => $totalRevenue,
+            'chart_data' => $chartData,
+        ]);
+    }
 }
