@@ -113,7 +113,7 @@ class SettingsController extends Controller
 
         $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        session(['pin_otp' => $otp, 'pin_otp_expires' => now()->addMinutes(10)]);
+        session(['pin_otp' => Hash::make($otp), 'pin_otp_expires' => now()->addMinutes(10)]);
 
         $body = "Halo {$user->name},\n\nKode OTP untuk mereset PIN QRIS Restoran {$restaurant->name} Anda adalah:\n\n{$otp}\n\nKode ini berlaku 10 menit. Jangan bagikan ke siapapun.";
 
@@ -142,7 +142,7 @@ class SettingsController extends Controller
             return response()->json(['success' => false, 'message' => 'OTP sudah kedaluwarsa. Minta ulang.']);
         }
 
-        if ($request->otp !== $savedOtp) {
+        if (!Hash::check($request->otp, $savedOtp)) {
             return response()->json(['success' => false, 'message' => 'Kode OTP salah.']);
         }
 

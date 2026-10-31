@@ -310,6 +310,9 @@
 
 @push('scripts')
 <script>
+// Variabel untuk menandai apakah user sedang mencari
+let isSearching = false;
+
 function showToast(message, type = 'error') {
     let container = document.getElementById('toast-container');
     if (!container) {
@@ -368,31 +371,38 @@ cart = [];
 localStorage.removeItem('cart');
 
 function filterProducts() {
+    // Tandai bahwa user sedang mencari
+    isSearching = true;
+
     const query = document.getElementById('search-input').value.toLowerCase().trim();
-    const activeCat = document.querySelector('.category-pill.bg-teal-500')?.dataset.category || 'all';
     let visibleCount = 0;
 
-    document.querySelectorAll('.category-section').forEach(section => {
-        const catId = section.dataset.category;
-        const catMatch = (activeCat === 'all' || catId == activeCat);
-        let sectionVisible = 0;
+    document.querySelectorAll('.product-card').forEach(card => {
+        const productName = (card.dataset.name || '').toLowerCase();
+        if (productName.includes(query)) {
+            card.style.display = '';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
 
-        section.querySelectorAll('.product-card').forEach(card => {
-            const nameMatch = card.dataset.name.includes(query);
-            if (nameMatch && catMatch) {
-                card.style.display = '';
-                sectionVisible++;
-                visibleCount++;
-            } else {
-                card.style.display = 'none';
-            }
-        });
-        section.style.display = (catMatch && sectionVisible > 0) ? '' : 'none';
+    document.querySelectorAll('.category-section').forEach(section => {
+        const hasVisible = Array.from(section.querySelectorAll('.product-card')).some(card => card.style.display !== 'none');
+        section.style.display = hasVisible ? '' : 'none';
     });
 
     const noResult = document.getElementById('search-empty');
-    if (visibleCount === 0) noResult.classList.remove('hidden');
-    else noResult.classList.add('hidden');
+    if (visibleCount === 0) {
+        noResult.classList.remove('hidden');
+    } else {
+        noResult.classList.add('hidden');
+    }
+
+    // Jika kolom pencarian kosong, matikan mode mencari
+    if (query === '') {
+        isSearching = false;
+    }
 }
 
 function filterCategory(catId, btn) {
@@ -799,45 +809,53 @@ function formatRp(num) {
     // SENSOR REAL-TIME: SEMBUNYIKAN MENU YANG HABIS
     // ==========================================
     setInterval(function() {
-        // Jangan jalankan sensor kalau pelanggan sedang buka modal (biar ga kaget)
-        const isModalOpen = !document.getElementById('product-modal').classList.contains('hidden') || 
-                            !document.getElementById('checkout-modal').classList.contains('hidden');
-        if (isModalOpen) return;
+    // JIKA SEDANG MENCARI, JANGAN JALANKAN SENSOR
+    if (isSearching) return;
 
-        fetch('/api/check-menu-status/{{ $restaurant->slug }}')
-            .then(res => res.json())
-            .then(data => {
-                const availableIds = data.available_ids;
+    // Jangan jalankan sensor kalau pelanggan sedang buka modal (biar ga kaget)
+    const isModalOpen = !document.getElementById('product-modal').classList.contains('hidden') || 
+                        !document.getElementById('checkout-modal').classList.contains('hidden');
+    if (isModalOpen) return;
+
+    fetch('/api/check-menu-status/{{ $restaurant->slug }}')
+        .then(res => res.json())
+        .then(data => {
+            const availableIds = data.available_ids;
+            
+            document.querySelectorAll('.product-card').forEach(card => {
+                const productId = parseInt(card.getAttribute('data-product-id'));
                 
-                document.querySelectorAll('.product-card').forEach(card => {
-                    const productId = parseInt(card.getAttribute('data-product-id'));
-                    
-                    if (!productId) return;
+                if (!productId) return;
 
-                    // Jika ID produk TIDAK ADA di daftar available_ids (artinya habis)
-                    if (!availableIds.includes(productId)) {
-                        // Sembunyikan dengan animasi halus
-                        if (card.style.display !== 'none') {
-                            card.style.opacity = '0';
-                            card.style.transform = 'scale(0.9)';
-                            
-                            setTimeout(() => {
-                                card.style.display = 'none';
-                            }, 300);
-                        }
-                    } else {
-                        // Jika sebelumnya disembunyikan tapi sekarang tersedia lagi, munculkan
-                        if (card.style.display === 'none') {
-                            card.style.display = '';
-                            setTimeout(() => {
-                                card.style.opacity = '1';
-                                card.style.transform = 'scale(1)';
-                            }, 10);
-                        }
+                if (!availableIds.includes(productId)) {
+                    if (card.style.display !== 'none') {
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.9)';
+                        
+                        setTimeout(() => {
+                            card.style.display = 'none';
+                        }, 300);
                     }
-                });
-            })
-            .catch(err => console.log('Sensor menu gagal:', err));
-    }, 5000); // Cek setiap 5 detik
+                } else {
+                    if (card.style.display === 'none') {
+                        card.style.display = '';
+                        setTimeout(() => {
+                            card.style.opacity = '1';
+                            card.style.transform = 'scale(1)';
+                        }, 10);
+                    }
+                }
+            });
+        })
+        .catch(err => console.log('Sensor menu gagal:', err));
+}, 5000);
+
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.removeEventListener('input', filterProducts);
+        searchInput.addEventListener('input', filterProducts);
+    }
+});
 </script>
 @endpush

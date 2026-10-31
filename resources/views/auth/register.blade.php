@@ -31,11 +31,11 @@
     </style>
      @livewireStyles
 </head>
-<body class="auth-bg min-h-screen flex flex-col overflow-hidden text-gray-800">
+<body class="auth-bg min-h-screen flex flex-col text-gray-800">
 
     {{-- HEADER --}}
     <header class="relative z-20 flex items-center justify-between px-6 md:px-12 py-5">
-        <a href="/" class="flex items-center gap-2">
+        <a href="/" class="flex items-center gap-2" >
             <div class="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
                 <span class="text-white font-extrabold text-xl">K</span>
             </div>

@@ -33,7 +33,7 @@ class ForgotPasswordController extends Controller
         // Simpan / update OTP
         PasswordResetOtp::updateOrCreate(
             ['email' => $request->email],
-            ['otp' => $otp, 'expires_at' => now()->addMinutes(10)]
+            ['otp' => Hash::make($otp), 'expires_at' => now()->addMinutes(10)]
         );
 
         // Kirim email
@@ -78,7 +78,7 @@ class ForgotPasswordController extends Controller
 
         $record = PasswordResetOtp::where('email', $email)->first();
 
-        if (!$record || $record->otp !== $request->otp) {
+        if (!$record || !Hash::check($request->otp, $record->otp)) {
             return back()->withErrors(['otp' => 'Kode OTP salah.']);
         }
 
